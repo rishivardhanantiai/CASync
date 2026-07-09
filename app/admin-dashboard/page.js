@@ -1276,6 +1276,16 @@ export default function AdminDashboardPage() {
   function navigate(view) {
     setActiveView(view);
     setMobileSidebarOpen(false);
+    // Reset modal and edit states to prevent scroll lock leaks
+    setShowHistoryModal(false);
+    setSelectedClientForView(null);
+    setAllocateModal(null);
+    setConfirmModal({ isOpen: false, title: "", message: "", onConfirm: null });
+    setEditingTeamMember(null);
+    setEditingAdmin(null);
+    setSrMode(null);
+    setSelectedRequest(null);
+
     if (view === "registeredUsers") loadUsers();
     if (view === "adminManagement") { loadAdmins(); setAdminTab("list"); }
     if (view === "teamManagement") { loadTeamMembers(); loadUsers(); setTeamTab("list"); }
@@ -1490,7 +1500,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: theme.bg, color: theme.text, fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: theme.bg, color: theme.text, fontFamily: "'Segoe UI', sans-serif" }}>
       <ToastContainer />
       <style>{`
         .premium-input {

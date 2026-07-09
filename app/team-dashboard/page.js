@@ -463,7 +463,13 @@ includes(activeView);
     }
   }
 
-  function navigate(view) { setActiveView(view); }
+  function navigate(view) {
+    setActiveView(view);
+    // Reset modal and editing states to prevent scroll lock leaks
+    setSrMode(null);
+    setSelectedRequest(null);
+    setEditingProfile(false);
+  }
 
   function toggleDark() {
     const next = !darkMode;
@@ -780,7 +786,7 @@ includes(activeView);
 
   // ── Dashboard layout ────────────────────────────────────────────────────────
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: theme.bg, color: theme.text, fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: theme.bg, color: theme.text, fontFamily: "'Segoe UI', sans-serif" }}>
       <ToastContainer />
       <style>{`
         .premium-input {
