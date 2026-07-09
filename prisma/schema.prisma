@@ -1,0 +1,450 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  mobile    String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  logins        UserLogin[]
+  adminActivities AdminActivity[] @relation("TargetUser")
+  chatMessages    ChatMessage[]
+  gstRegistrations GSTRegistration[]
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  phone     String?
+  role      String   @default("Admin") // ✅ ADDED THIS LINE FOR ROLE BASED ACCESS
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  activities   AdminActivity[]
+  chatMessages ChatMessage[]
+  news         News[]
+}
+
+model TeamMember {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  password           String
+  phone              String?
+  role               String   @default("Team")
+  services           String[] @default([])
+  allocatedClientIds String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  fileName     String
+  fileData     String   // base64 encoded file
+  fileSize     String?
+  mimeType     String   @default("application/octet-stream")
+  uploader     String   // "admin" | "team"
+  uploaderId   String
+  uploaderName String?
+  clientId     String
+  clientEmail  String
+  title        String?
+  note         String?
+  createdAt    DateTime @default(now())
+}
+
+model UserLogin {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  loginTime DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+}
+
+model AdminActivity {
+  id           String   @id @default(cuid())
+  adminId      String?
+  admin        Admin?   @relation(fields: [adminId], references: [id])
+  activityType String?
+  description  String?
+  targetUserId String?
+  targetUser   User?    @relation("TargetUser", fields: [targetUserId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  adminId        String?
+  admin          Admin?   @relation(fields: [adminId], references: [id])
+  message        String?
+  attachmentPath String?
+  isFromAdmin    Boolean  @default(false)
+  isCompleted    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model GSTRegistration {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  userEmail    String   @default("")
+  gstNumber    String?
+  firmName     String?
+  businessType String?
+  mainPerson   String?
+  address      String?
+  panNo        String?
+  udyamNo      String?
+  bankAccNo    String?
+  ifscCode     String?
+  documents    String[] @default([])
+  createdAt    DateTime @default(now())
+}
+
+model GSTReturn {
+  id            String   @id @default(cuid())
+  userEmail     String   @default("")
+  gstNumber     String?
+  businessName  String?
+  state         String?
+  mainPerson    String?
+  panNo         String?
+  financialYear String?
+  month         String?
+  documents     String[] @default([])
+  createdAt     DateTime @default(now())
+}
+
+model IncomeTaxReturn {
+  id              String   @id @default(cuid())
+  userEmail       String   @default("")
+  pan             String?
+  name            String?
+  fatherName      String?
+  dob             String?
+  mobileNo        String?
+  email           String?
+  incomeType      String?
+  address         String?
+  bankAccount     String?
+  ifscCode        String?
+  financialYear   String?
+  assessmentYear  String?
+  landSale        Float    @default(0)
+  housingRent     Float    @default(0)
+  salary          Float    @default(0)
+  business        Float    @default(0)
+  agriculture     Float    @default(0)
+  other           Float    @default(0)
+  otherIncome     String?
+  aadharNo        String?
+  createdAt       DateTime @default(now())
+}
+
+model News {
+  id        String   @id @default(cuid())
+  adminId   String?
+  admin     Admin?   @relation(fields: [adminId], references: [id])
+  title     String?
+  content   String?
+  createdAt DateTime @default(now())
+}
+
+model PanDetails {
+  id           String   @id @default(cuid())
+  userEmail    String   @default("")
+  pan          String   @unique
+  name         String   @default("")
+  middleName   String   @default("")
+  lastName     String   @default("")
+  fatherName   String   @default("")
+  dob          String   @default("")
+  mobileNo     String   @default("")
+  email        String   @default("")
+  incomeType   String   @default("")
+  plotNo       String   @default("")
+  buildingName String   @default("")
+  streetNo     String   @default("")
+  area         String   @default("")
+  city         String   @default("")
+  district     String   @default("")
+  state        String   @default("")
+  pin          String   @default("")
+  address      String   @default("")
+  createdAt    DateTime @default(now())
+}
+
+model IncomeTaxQuery {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?
+  phone        String?
+  pan          String?
+  queryType    String?
+  queryDetails String?
+  timestamp    DateTime @default(now())
+}
+
+model ServiceRequest {
+  id             String   @id @default(cuid())
+  userEmail      String
+  clientName     String?
+  serviceType    String   // e.g., "GST_REGISTRATION", "ITR", "GST_RETURN", "PAN", "IT_QUERY"
+  status         String   @default("submitted") // "submitted", "in_progress", "pending_review", "completed", "pending_docs"
+  priority       String   @default("medium")    // "low", "medium", "high"
+  assignedToId   String?
+  assignedToName String?
+  reviewerId     String?
+  reviewerName   String?
+  dueDate        DateTime?
+  referenceId    String?  // ID of the specific record (e.g. GSTRegistration ID)
+  adminNotes     String?  // Reason for return / team comments
+  clientNotes    String?  // Client's response when fixing
+  panNumber      String?
+  gstNumber      String?
+  cinNumber      String?
+  udhyamNumber   String?
+  aadharNumber   String?
+  financialYear  String?
+  financialMonth String?
+  paymentStatus  String   @default("pending") // "pending" | "paid"
+  isDummy        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subtasks         SubTask[]
+  missingDocuments MissingDocument[]
+  activities       RequestActivity[]
+  internalNotes    InternalNote[]
+}
+
+model SubTask {
+  id               String   @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  isCompleted      Boolean  @default(false)
+  completedAt      DateTime?
+  completedById    String?
+  completedByName  String?
+  createdById      String?
+  createdByName    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([serviceRequestId])
+}
+
+model MissingDocument {
+  id                 String   @id @default(cuid())
+  serviceRequestId   String
+  serviceRequest     ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  documentName       String
+  note               String?
+  status             String   @default("requested") // "requested", "received", "waived"
+  requestedById      String?
+  requestedByName    String?
+  receivedDocumentId String?
+  receivedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([serviceRequestId])
+  @@index([status])
+}
+
+model RequestActivity {
+  id               String   @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  actorId          String?
+  actorEmail       String?
+  actorName        String?
+  actorRole        String?
+  action           String
+  description      String
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([serviceRequestId])
+  @@index([createdAt])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  clientEmail String
+  service     String
+  amount      Float
+  status      String   @default("pending") // "pending", "paid", "overdue"
+  date        DateTime @default(now())
+  due         DateTime
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  email     String
+  title     String
+  message   String
+  type      String   @default("info") // "info", "success", "warning", "error"
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model RequestMessage {
+  id               String   @id @default(cuid())
+  serviceRequestId String
+  senderEmail      String
+  senderName       String
+  senderRole       String   // "client" | "team" | "admin"
+  message          String
+  fileId           String?  // docId from Document table if a file was attached
+  fileName         String?  // original file name for display
+  createdAt        DateTime @default(now())
+}
+
+model InternalNote {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  authorId         String
+  authorName       String
+  authorRole       String         @default("Team")
+  content          String         // Changed from 'note' to match your DB!
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now()) @updatedAt
+
+  @@index([serviceRequestId])
+}
+
+model CompanyRegistration {
+  id                String   @id @default(cuid())
+  userEmail         String   @default("")
+  companyRegNo      String?
+  companyName       String?
+  contactPerson     String?
+  email             String?
+  phone             String?
+  address           String?
+  businessToStart   String?
+  documents         String[] @default([])
+  isNewRegistration Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}
+
+model FirmRegistration {
+  id              String   @id @default(cuid())
+  userEmail       String   @default("")
+  requiredName    String?
+  contactPerson   String?
+  address         String?
+  mobileNo        String?
+  email           String?
+  businessToStart String?
+  documents       String[] @default([])
+  createdAt       DateTime @default(now())
+}
+
+model UdhyamRegistration {
+  id              String   @id @default(cuid())
+  userEmail       String   @default("")
+  requiredName    String?
+  registrationNo  String?
+  contactPerson   String?
+  address         String?
+  mobileNo        String?
+  email           String?
+  businessToStart String?
+  changeDetails   String?
+  documents       String[] @default([])
+  isUpdate        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model OtherRequirement {
+  id                   String   @id @default(cuid())
+  userEmail            String   @default("")
+  requirementType      String?
+  otherRequirementText String?
+  contactPerson        String?
+  email                String?
+  phone                String?
+  documents            String[] @default([])
+  createdAt            DateTime @default(now())
+}
+
+model Compliance {
+  id          String   @id @default(cuid())
+  userEmail   String   @default("")
+  companyName String?
+  details     String?
+  queryText   String?
+  documents   String[] @default([])
+  createdAt   DateTime @default(now())
+}
+
+model GstQuery {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?
+  phone        String?
+  gstNumber    String?
+  queryType    String?
+  queryDetails String?
+  timestamp    DateTime @default(now())
+}
+
+model CompanyQuery {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?
+  phone        String?
+  cin          String?
+  queryType    String?
+  queryDetails String?
+  timestamp    DateTime @default(now())
+}
+
+model FirmQuery {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?
+  phone        String?
+  firmName     String?
+  queryDetails String?
+  timestamp    DateTime @default(now())
+}
+
+model UdhyamQuery {
+  id           String   @id @default(cuid())
+  name         String?
+  email        String?
+  phone        String?
+  udhyamNo     String?
+  queryType    String?
+  queryDetails String?
+  timestamp    DateTime @default(now())
+}
